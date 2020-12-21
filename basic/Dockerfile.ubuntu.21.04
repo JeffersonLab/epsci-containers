@@ -30,7 +30,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Install compiler and code management tools
 RUN apt -y update \
 	&& apt -y install build-essential libssl-dev libffi-dev python-dev \
-	&& apt -y install python python3 git subversion cvs curl
+	&& apt -y install gfortran python python3 git subversion cvs curl
 
 COPY dsh /container/dsh
 COPY Dockerfile.ubuntu.21.04 /container/Dockerfile.ubuntu.21.04
