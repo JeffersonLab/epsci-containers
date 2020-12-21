@@ -1,0 +1,35 @@
+#--------------------------------------------------------------------------
+# centos build environment
+# 
+# This Dockerfile will produce an image suitable for compiling software.
+# The image will gave a C/C++ and Fortran compiler as well as python,
+# It will also contain version control software (e.g. git and svn).
+#
+# To use this most effectively:
+#
+#      docker run -it --rm jeffersonlab/epsci-centos:7.7.1908 cat /container/dsh | tr -d "\r" > dsh
+#      chmod +x ./dsh
+#      ./dsh jeffersonlab/epsci-ubuntu-centos:7.7.1908
+#
+#--------------------------------------------------------------------------
+#
+#   docker build -t epsci-centos:7.7.1908 -t jeffersonlab/epsci-centos:7.7.1908 -f Dockerfile.centos.7.7.1908 .
+#   docker push jeffersonlab/epsci-centos:7.7.1908
+#
+#   singularity build epsci-centos-7.7.1908.img docker://jeffersonlab/epsci-centos:7.7.1908
+#
+#--------------------------------------------------------------------------
+
+FROM centos:7.7.1908
+
+# Install compiler and code management tools
+RUN yum -y update \
+	&& yum -y groupinstall 'Development Tools' \
+	&& yum -y install python python3 git subversion cvs curl
+
+COPY dsh /container/dsh
+COPY Dockerfile.centos.7.7.1908 /container/Dockerfile.centos.7.7.1908
+RUN ln -s /root /home/root
+RUN ln -s /root /home/0
+
+CMD ["/bin/bash"]

@@ -1,0 +1,326 @@
+#!/bin/tcsh -f
+#
+#  Run with '-h' for usage statement and description of script
+#
+#     > dsh -h
+#
+# envars:
+#
+#   DSH_DEFAULT_IMAGE   in standard name:tag format (e.g. centos:7)
+#   DSH_DEFAULT_ARGS    extra arguments to pass in when creating container
+#   DSH_SHELL           command to be run (e.g. tcsh  or bash)
+#   DSH_NAME            name to assign container when created (hostname in container)
+#
+
+set image_name=centos:7
+set default_args=""
+set container_cmd="bash"
+set container_name="docker"
+set volumes="-v ${HOME}:/home_host/$USER -v /tmp:/tmp_host"
+set user=$USER
+set ports="-p 6080:6080 -p 5900:5900 -p 5901:5901"
+set stop_container="no"
+set print_usage="no"
+set ubuntu_adduser_style="auto"
+set misc_run_opts=""
+
+# Override hardcoded defaults with environment variables
+if ( $?DSH_DEFAULT_IMAGE ) then 
+	set image_name=$DSH_DEFAULT_IMAGE
+endif
+
+if ( $?DSH_SHELL ) then
+	set container_cmd=$DSH_SHELL
+endif
+
+if ( $?DSH_NAME ) then
+	set container_name="$DSH_NAME"
+endif
+
+if ( $?DSH_DEFAULT_ARGS ) then
+	set default_args="$DSH_DEFAULT_ARGS"
+	if ( "$default_args" =~ "*-gdb*" ) then
+		set default_args=`echo  $default_args|sed 's/\-gdb/--cap-add=SYS_PTRACE --security-opt seccomp=unconfined/g'`
+	endif
+endif
+
+while ( $# ) 
+	switch ( $1 )
+
+		case '-h':
+		case '--help':
+			set print_usage="yes"
+			breaksw
+		
+		case '-u':
+			shift
+			set user = $1
+			breaksw
+
+		case '-c':
+			shift
+			set container_cmd = $1
+			breaksw
+
+		case '-v':
+			shift
+			set volumes = ( $volumes '-v' $1 )
+			breaksw
+
+		case '-cv':
+			set volumes = ''
+			breaksw
+
+		case '-p':
+			shift
+			set ports = ( $ports '-p' $1 )
+			breaksw
+
+		case '-cp':
+			set ports = ''
+			breaksw
+
+		case '-gdb':
+			set misc_run_opts="$misc_run_opts --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+			breaksw
+
+		case '-s':
+			set stop_container="yes"
+			breaksw
+
+		case '-U+':
+			set ubuntu_adduser_style="yes"
+			breaksw
+
+		case '-U-':
+			set ubuntu_adduser_style="no"
+			breaksw
+
+		default:
+			set image_name=$1
+	endsw
+	shift
+end
+
+# Print usage statement and exit if appropriate
+if ( $print_usage == "yes" ) then
+	echo " This script is used to optionally launch and then attach to"
+	echo "a docker container. It is meant to make it easy to use the"
+	echo "container like a virtual machine by just typing 'dsh' to "
+	echo "jump into the container and launch a new shell. The other key"
+	echo "feature is it will create a user and group with the same name"
+	echo "and id as the local system so it is easier to work in a shared"
+	echo "directory with the host."	
+	echo " "
+	echo "If a container does not already exist, a new one is created"
+	echo "and the following actions performed on it by default:"
+	echo " "
+	echo "1.\) A new user is added that has the same username, uid, and"
+	echo "    gid as the user running dsh on the host"
+	echo " "
+	echo "2.\) The user\'s home directory on the host is mapped to the"
+	echo "    container with a link called 'home_host' in the home"
+	echo "    directory inside the container."
+	echo " "
+	echo "3.\) The host /tmp directory is mapped to /tmp_host in the"
+	echo "    container."
+	echo " "
+	echo "4.\) The command used to run the container is 'sleep infinity'"
+	echo "    which means the container will not exit when you exit"
+	echo "    from dsh. (use dsh -s to stop a container created by dsh)"
+	echo " "
+	echo " "
+	echo "Multiple instances of dsh can be run at the same time, each"
+	echo "representing a different shell process in the same container."
+	echo "You can stop and remove a continer with dsh -s (or using the"
+	echo "docker stop and rm commands directly)."
+	echo " "
+	echo "The following environment variables can be used to override the"
+	echo "default values in dsh:"
+	echo " "
+	echo "DSH_SHELL          sets command to be run (e.g. tcsh) This is superceded "
+	echo "                   by the -c command line option if given"
+	echo " "
+	echo "DSH_NAME           sets name of container on startup. Useful for "
+	echo "                   communicating with other containers, but not much else"
+	echo " "
+	echo "DSH_DEFAULT_IMAGE  set the docker image used. This is superceded"
+	echo "                   by the the command line argument if given"
+	echo " "
+	echo "DSH_DEFAULT_ARGS   set default arguments to the docker run command."
+	echo "                   This is useful if you wish to set docker options in"
+	echo "                   say, a login script so they don't need to be added"
+	echo "                   to the dsh command line explicitly. For example,"
+	echo "                   setting this to something like the following will"
+	echo "                   cause a directory on the host to be mounted as the"
+	echo "                   home directory for user davidl providing some "
+	echo "                   persistence of config. files across containers."
+	echo " "
+	echo "                 '-v ${HOME}/builds/Linux-Docker/home/davidl:/home/davidl'"
+	echo " "
+	echo "Usage:"
+	echo "       dsh [options] [imagename]"
+	echo " "
+	echo "options:"
+	echo "     -h,--help     Print this usage/help statement"
+	echo " "
+	echo "     -u  user      Set the user to 'user' instead of the one"
+	echo "                   running this script."
+	echo " "
+	echo "     -c  command   Set the command to be run inside the container"
+	echo "                   The default is to use the DSH_SHELL environment"
+	echo "                   variable and if that is not available then 'bash'"
+	echo " "
+	echo "     -v volume     Specify a volume to be mapped to the container."
+	echo "                   The format is just the host_dir:container_dir"
+	echo "                   format docker uses. This may be specified more"
+	echo "                   than once and all directories will be mapped."
+	echo "                   This only affects when the container is first"
+	echo "                   started."
+	echo " "
+	echo "     -cv           Clear volumes. This will clear out the list of"
+	echo "                   volumes to be mapped, including any specified "
+	echo "                   using the -v option above. The only real use of"
+	echo "                   this is to prevent the user\'s home directory on"
+	echo "                   the host from being mapped since it is added to"
+	echo "                   the list by default. "
+	echo " "
+	echo "     -p            Expose port to outside of container. This should"
+	echo "                   be in standard container_port:host_port format"
+	echo "                   used by the docker run command. By default, ports"
+	echo "                   6080, 5900, and 5901 are exposed"
+	echo " "
+	echo "     -cp           Clear ports. This will clear out the list of"
+	echo "                   ports to be mapped. This is really only useful"
+	echo "                   for removing the default ports so that they are"
+	echo "                   not mapped."
+	echo " "
+	echo "     -gdb          Add '--security-opt seccomp=unconfined' to the run"
+	echo "                   command to allow gdb to work. This can only be done"
+	echo "                   when the container is first created"
+	echo " "
+	echo "     -s            Stop and remove the container"
+	echo " "
+	echo "     -U+           Force addition of ubuntu style adduser args when"
+	echo "                   creating the container (see note below)"
+	echo " "
+	echo "     -U-           Do NOT add ubuntu style adduser args when creating"
+	echo "                   the container (see note below)"
+	echo " "
+	echo "Users"
+	echo "------------"
+	echo "The use of the -u option should be consistent throughout the"
+	echo "life of the container. More specifically, dsh will only create"
+	echo "a user when the container is first created. Subsequent invocations"
+	echo "of dsh will see the existing container and connect to it without"
+	echo "trying to create a new user. Users defined in the image itself"
+	echo "(e.g. root) are always available."
+	echo " "
+	echo "Ubuntu style adduser arguments:"
+	echo "------------"
+	echo "When running adduser on an"
+	echo "ubuntu-like system, it will normally prompt the user for"
+	echo "additional information such as password, full name, ..."
+	echo "If this happens, this script will fail at that point. Additional"
+	echo "arguments can be passed to avoid this, but they will cause the"
+	echo "adduser call to fail on other centos-like systems. By default,"
+	echo "this script will try and guess if this is ubuntu-like just from"
+	echo "the image name. The -U+ and -U- command line options will disable"
+	echo "this guessing and force the options to be or not be included."
+	echo " "
+	exit
+endif
+
+# Check if a running container already exists for this image.
+set container_id=`docker ps | grep $image_name | awk '{print $1}'`
+
+# If user is trying to stop container, do that first
+if( $stop_container == "yes" ) then
+	
+	if ( $container_id == "" ) then
+		echo "No container exists for image $image_name"
+	else
+		echo "Stopping $container_id ..."
+		docker stop -t 1 $container_id
+
+		echo "Removing $container_id ..."
+		docker rm $container_id
+	endif
+	exit
+endif
+
+
+# If container exists, use it. Otherwise launch a new container.
+if ( $container_id == "" ) then
+
+	echo "No container exists for image $image_name. Creating a new one ..."
+	
+	# Create new container that stays up forever until explicity stopped
+	# Map a few directories over to the container
+	set cmd = "docker run -d --hostname $container_name $misc_run_opts $volumes $ports $default_args $image_name sleep infinity"
+	echo $cmd
+	$cmd
+
+	# Pause a couple of seconds to give container a chance to start
+	# up. Otherwise, we get "System error: too many levels of symbolic links"
+	echo "giving container time to start up ..."
+	sleep 2
+	
+	# Get container id, user id, and group id
+	set container_id=`docker ps -a | grep $image_name | awk '{print $1}'`
+	set myuid=`id -u $user`
+	set mygid=`id -g $user`
+	set mygroup=`id -ng $user | awk -F'\' '{print $NF}'` # awk cuts out "JLab\" from groups like "JLab\da"
+	
+	# Ubuntu adduser takes extra arguments to avoid prompting user for extra info
+	if ( $ubuntu_adduser_style == "auto" ) then
+		if ( $image_name =~ '*buntu*' ) then
+			set ubuntu_style_adduser="yes"
+		else
+			set ubuntu_style_adduser="no"
+		endif
+	endif
+	set adduser_args=""
+	if ( $ubuntu_style_adduser == "yes" ) then
+		set adduser_args='--disabled-password --gecos ""'
+	endif
+
+	# Add user to either "wheel" group for centos or "sudo" group for Ubuntu.
+	# For some of our centos7 containers, wheel is given sudo privilege and
+	# we want to add this user to it.
+	# n.b. recent ubuntu images need "apt-get update" followed by
+	# "apt-get install sudo"
+	set sudo_group=""
+	if ( $ubuntu_style_adduser == "yes" ) then
+		set sudo_group="sudo"
+	else
+		set sudo_group="wheel"
+	endif
+
+	echo "Adding user $user (id=$myuid groupid=$mygid) ..."
+	docker exec -u 0 -w / $container_id groupadd -g $mygid $mygroup
+	docker exec -u 0 -w / $container_id adduser $adduser_args --uid $myuid --gid $mygid --shell /bin/tcsh $user
+	#docker exec -it -w / -u $myuid $container_id ln -s /docker/dot_tcshrc /home/$user/.tcshrc
+	docker exec -it -w / -u $myuid $container_id ln -s /home_host/$user /home/$user/home_host
+endif
+
+# Get container id
+if ( $container_id == "" ) then
+
+	echo "Problem creating container!"
+
+else
+	
+	echo "Attaching to container $container_id"
+	set containerIP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container_id`
+	echo "To open X-windows you may need to run (on the host): xhost +$containerIP"
+	if ( `uname` == 'Darwin' ) then
+		# Mac OS X won't work with hostname and needs this special one
+		set DISPLAY=host.docker.internal:0
+	else
+		set DISPLAY=`hostname`:0
+	endif
+
+	docker exec -it -w /home/$user -e DISPLAY=$DISPLAY -u `id -u $user` $container_id $container_cmd
+	
+endif
