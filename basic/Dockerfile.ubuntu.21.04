@@ -16,6 +16,8 @@
 #   docker build -t epsci-ubuntu:21.04 -t jeffersonlab/epsci-ubuntu:21.04 -f Dockerfile.ubuntu.21.04 .
 #   docker push jeffersonlab/epsci-ubuntu:21.04
 #
+# On ifarm:
+#   cd /scigroup/spack/mirror/singularity/images
 #   singularity build epsci-ubuntu-21.04.img docker://jeffersonlab/epsci-ubuntu:21.04
 #
 #--------------------------------------------------------------------------

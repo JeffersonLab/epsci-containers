@@ -16,6 +16,8 @@
 #   docker build -t epsci-centos:7.7.1908 -t jeffersonlab/epsci-centos:7.7.1908 -f Dockerfile.centos.7.7.1908 .
 #   docker push jeffersonlab/epsci-centos:7.7.1908
 #
+# On ifarm:
+#   cd /scigroup/spack/mirror/singularity/images
 #   singularity build epsci-centos-7.7.1908.img docker://jeffersonlab/epsci-centos:7.7.1908
 #
 #--------------------------------------------------------------------------
@@ -23,8 +25,7 @@
 FROM centos:7.7.1908
 
 # Install compiler and code management tools
-RUN yum -y update \
-	&& yum -y groupinstall 'Development Tools' \
+RUN yum -y groupinstall 'Development Tools' \
 	&& yum -y install python python3 git subversion cvs curl
 
 COPY dsh /container/dsh

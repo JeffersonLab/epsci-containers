@@ -16,6 +16,8 @@
 #   docker build -t epsci-centos:8.3.2011 -t jeffersonlab/epsci-centos:8.3.2011 -f Dockerfile.centos.8.3.2011 .
 #   docker push jeffersonlab/epsci-centos:8.3.2011
 #
+# On ifarm:
+#   cd /scigroup/spack/mirror/singularity/images
 #   singularity build epsci-centos-8.3.2011.img docker://jeffersonlab/epsci-centos:8.3.2011
 #
 #--------------------------------------------------------------------------
@@ -23,8 +25,7 @@
 FROM centos:8.3.2011
 
 # Install compiler and code management tools
-RUN dnf -y update \
-	&& dnf -y groupinstall 'Development Tools' \
+RUN dnf -y groupinstall 'Development Tools' \
 	&& dnf -y install gcc-gfortran python2 python3 git subversion curl \
 	&& dnf clean all
 
