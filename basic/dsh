@@ -271,6 +271,7 @@ if ( $container_id == "" ) then
 	set myuid=`id -u $user`
 	set mygid=`id -g $user`
 	set mygroup=`id -ng $user | awk -F'\' '{print $NF}'` # awk cuts out "JLab\" from groups like "JLab\da"
+	if ( "$mygroup" == "$mygid" ) set mygroup="default"
 	
 	# Ubuntu adduser takes extra arguments to avoid prompting user for extra info
 	if ( $ubuntu_adduser_style == "auto" ) then
