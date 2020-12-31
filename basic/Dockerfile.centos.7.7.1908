@@ -9,7 +9,7 @@
 #
 #      docker run -it --rm jeffersonlab/epsci-centos:7.7.1908 cat /container/dsh | tr -d "\r" > dsh
 #      chmod +x ./dsh
-#      ./dsh jeffersonlab/epsci-ubuntu-centos:7.7.1908
+#      ./dsh jeffersonlab/epsci-centos:7.7.1908
 #
 #--------------------------------------------------------------------------
 #
