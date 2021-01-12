@@ -26,7 +26,7 @@ FROM centos:8.3.2011
 
 # Install compiler and code management tools
 RUN dnf -y groupinstall 'Development Tools' \
-	&& dnf -y install gcc-gfortran python2 python3 git subversion curl \
+	&& dnf -y install gcc-gfortran python2 python3 git subversion curl which \
 	&& dnf clean all
 
 COPY dsh /container/dsh

@@ -26,7 +26,7 @@ FROM centos:7.7.1908
 
 # Install compiler and code management tools
 RUN yum -y groupinstall 'Development Tools' \
-	&& yum -y install python python3 git subversion cvs curl
+	&& yum -y install python python3 git subversion cvs curl which
 
 COPY dsh /container/dsh
 COPY Dockerfile.centos.7.7.1908 /container/Dockerfile.centos.7.7.1908
