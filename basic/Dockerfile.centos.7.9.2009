@@ -13,7 +13,7 @@
 #
 #--------------------------------------------------------------------------
 #
-#   docker build -t epsci-centos:7.9.2009 -t jeffersonlab/epsci-centos:7.9.2009 -f Dockerfile.centos.7.9.2009 .
+#   docker build --platform amd64 -t epsci-centos:7.9.2009 -t jeffersonlab/epsci-centos:7.9.2009 -f Dockerfile.centos.7.9.2009 .
 #   docker push jeffersonlab/epsci-centos:7.9.2009
 #
 # On ifarm:
