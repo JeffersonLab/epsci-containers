@@ -13,7 +13,23 @@
 #
 #--------------------------------------------------------------------------
 #
-#   docker build --platform amd64 -t epsci-centos:7.9.2009 -t jeffersonlab/epsci-centos:7.9.2009 -f Dockerfile.centos.7.9.2009 .
+# Multi-architecture builds:
+# Use this if you want to build for both standard Intel/AMD architectures
+# *and* for Apple silicon (M1 chip) architectures.
+# Note: you only need to run the first command once to create a multi-arch
+# builder on your local computer unless you remove it (last command).
+#
+#   docker buildx create --platform linux/arm64/v8,linux/amd64 --use --name mybuilder
+#   docker buildx build --push --platform linux/arm64/v8,linux/amd64 -t jeffersonlab/epsci-centos:7.9.2009 -f Dockerfile.centos.7.9.2009 .
+#   docker pull jeffersonlab/epsci-centos:7.9.2009
+#   docker tag jeffersonlab/epsci-centos:7.9.2009 epsci-centos:7.9.2009
+#   docker buildx rm mybuilder
+#
+#
+# Single-architecture builds:
+# The following will build only for the default architecture on your system.
+#
+#   docker build -t epsci-centos:7.9.2009 -t jeffersonlab/epsci-centos:7.9.2009 -f Dockerfile.centos.7.9.2009 .
 #   docker push jeffersonlab/epsci-centos:7.9.2009
 #
 # On ifarm:
