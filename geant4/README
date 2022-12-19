@@ -1,0 +1,22 @@
+
+Here we use the containerization feature of spack to create
+a Dockerfile that can build Geant4 inside a docer image using
+spack. This works by cloning spack to the local host and then
+using it to generate a Dockerfile using the spack.yaml file in
+this directory. That can then be used to build the docker
+container with Geant4
+
+Note that this requires using one of the spack-supplied base
+images for the build. My understanding is that the final image
+will have inherit from just the base ubuntu image and not the
+spack supplied one. Thus, any extra system packages (like gcc
+or python) must be installed via the spack.yaml and not
+from some other base image we created.
+
+Install spack and use it to create the Dockerfile like this:
+
+git clone -c feature.manyFiles=true https://github.com/spack/spack.git
+. spack/share/spack/setup-env.sh
+spack containerize >& Dockerfile.geant4.11.0.3
+docker build -t epsci-geant4:11.0.3 -t jeffersonlab/epsci-geant4:11.0.3 -f Dockerfile.geant4.11.0.3 .
+
