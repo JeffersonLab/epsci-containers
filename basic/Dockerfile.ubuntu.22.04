@@ -1,0 +1,42 @@
+#--------------------------------------------------------------------------
+# ubuntu build environment
+# 
+# This Dockerfile will produce an image suitable for compiling software.
+# The image will gave a C/C++ and Fortran compiler as well as python,
+# It will also contain version control software (e.g. git and svn).
+#
+# To use this most effectively:
+#
+#      docker run -it --rm jeffersonlab/epsci-ubuntu:22.04 cat /container/dsh | tr -d "\r" > dsh
+#      chmod +x ./dsh
+#      ./dsh jeffersonlab/epsci-ubuntu:22.04
+#
+#--------------------------------------------------------------------------
+#
+#   docker build -t epsci-ubuntu:22.04 -t jeffersonlab/epsci-ubuntu:22.04 -f Dockerfile.ubuntu.22.04 .
+#   docker push jeffersonlab/epsci-ubuntu:22.04
+#
+# On ifarm:
+#   cd /scigroup/spack/mirror/singularity/images
+#   singularity build epsci-ubuntu-22.04.img docker://jeffersonlab/epsci-ubuntu:22.04
+#
+#--------------------------------------------------------------------------
+
+FROM ubuntu:22.04
+
+# Python3 requires the timezone be set and will try and prompt
+# for it.
+ENV TZ=US/Eastern
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Install compiler and code management tools
+RUN apt-get -y update \
+	&& apt-get -y install build-essential libssl-dev libffi-dev python3-dev \
+	&& apt-get -y install gfortran python3 git subversion cvs curl
+
+COPY dsh /container/dsh
+COPY Dockerfile.ubuntu.22.04 /container/Dockerfile.ubuntu.22.04
+RUN ln -s /root /home/root
+RUN ln -s /root /home/0
+
+CMD ["/bin/bash"]
