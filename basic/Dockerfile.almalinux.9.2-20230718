@@ -54,7 +54,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install compiler and code management tools
 RUN dnf -y groupinstall 'Development Tools' \
-	&& dnf -y install --allowerasing gcc-gfortran python3 git subversion curl which \
+	&& dnf -y install --allowerasing gcc-gfortran python3 git subversion curl which procps-ng \
 	&& dnf clean all
 
 COPY dsh /container/dsh
