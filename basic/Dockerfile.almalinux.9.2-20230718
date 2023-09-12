@@ -1,0 +1,62 @@
+#--------------------------------------------------------------------------
+# almalinux build environment
+#
+# 
+# This Dockerfile will produce an image suitable for compiling software.
+# The image will gave a C/C++ and Fortran compiler as well as python,
+# It will also contain version control software (e.g. git and svn).
+#
+# To use this most effectively:
+#
+#      docker run -it --rm jeffersonlab/epsci-almalinux:9.2-20230718 cat /container/dsh | tr -d "\r" > dsh
+#      chmod +x ./dsh
+#      ./dsh jeffersonlab/epsci-almalinux:9.2-20230718
+#
+#--------------------------------------------------------------------------
+#
+#  These instructions are for a multi-architecture build (see below for single):
+#
+#   docker buildx create --name mybuilder
+#   docker buildx use mybuilder
+#   docker buildx inspect --bootstrap
+#   docker buildx build --platform linux/arm64,linux/amd64 -t epsci-almalinux:9.2-20230718 -t jeffersonlab/epsci-almalinux:9.2-20230718
+#
+#--------------------------------------------------------------------------
+#  These instructions are for the classic single architecture build:
+#
+#   docker build -t epsci-almalinux:9.2-20230718 -t jeffersonlab/epsci-almalinux:9.2-20230718 -f Dockerfile.almalinux.9.2-20230718 .
+#   docker push jeffersonlab/epsci-almalinux:9.2-20230718
+#
+#--------------------------------------------------------------------------
+# On ifarm:
+#   cd /scigroup/spack/mirror/singularity/images
+#   singularity build epsci-almalinux:9.2-20230718.img docker://jeffersonlab/epsci-almalinux:9.2-20230718
+#   cp -rp epsci-almalinux:9.2-20230718.img /scigroup/cvmfs/epsci/singularity/images
+#
+#--------------------------------------------------------------------------
+
+FROM almalinux:9.2-20230718
+
+# Python3 requires the timezone be set and will try and prompt
+# for it.
+ENV TZ=US/Eastern
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# These turn off lots of security features that otherwise prevent building
+# this on epscimac.jlab.org
+COPY openssl.cnf /tmp/openssl.cnf
+ENV OPENSSL_CONF=/tmp/openssl.cnf
+RUN echo insecure > /root/.curlrc
+RUN echo "Hello"
+
+# Install compiler and code management tools
+RUN dnf -y groupinstall 'Development Tools' \
+	&& dnf -y install --allowerasing gcc-gfortran python3 git subversion curl which \
+	&& dnf clean all
+
+COPY dsh /container/dsh
+COPY Dockerfile.almalinux.9.2-20230718 /container/Dockerfile.almalinux.9.2-20230718
+RUN ln -s /root /home/root
+RUN ln -s /root /home/0
+
+CMD ["/bin/bash"]
