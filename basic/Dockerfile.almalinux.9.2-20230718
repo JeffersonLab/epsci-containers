@@ -6,6 +6,12 @@
 # The image will gave a C/C++ and Fortran compiler as well as python,
 # It will also contain version control software (e.g. git and svn).
 #
+# The commands below are simplified by setting this environment variable:
+#
+#   export MYOS=almalinux:9.2-20230718
+#   export MYOS_=almalinux-9.2-20230718
+#
+#
 # To use this most effectively:
 #
 #      docker run -it --rm jeffersonlab/epsci-almalinux:9.2-20230718 cat /container/dsh | tr -d "\r" > dsh
@@ -19,19 +25,23 @@
 #   docker buildx create --name mybuilder
 #   docker buildx use mybuilder
 #   docker buildx inspect --bootstrap
-#   docker buildx build --platform linux/arm64,linux/amd64 -t epsci-almalinux:9.2-20230718 -t jeffersonlab/epsci-almalinux:9.2-20230718
+#   docker buildx build --platform linux/arm64,linux/amd64 -t jeffersonlab/epsci-${MYOS} --push -f Dockerfile.${MYOS_} .
+#
+#  To get this locally for the local architecture, pull it from dockerhub:
+#
+#  docker pull jeffersonlab/epsci-${MYOS}
 #
 #--------------------------------------------------------------------------
 #  These instructions are for the classic single architecture build:
 #
-#   docker build -t epsci-almalinux:9.2-20230718 -t jeffersonlab/epsci-almalinux:9.2-20230718 -f Dockerfile.almalinux.9.2-20230718 .
-#   docker push jeffersonlab/epsci-almalinux:9.2-20230718
+#   docker build -t epsci-${MYOS} -t jeffersonlab/epsci-${MYOS} -f Dockerfile.${MYOS} .
+#   docker push jeffersonlab/epsci-${MYOS}
 #
 #--------------------------------------------------------------------------
 # On ifarm:
 #   cd /scigroup/spack/mirror/singularity/images
-#   singularity build epsci-almalinux:9.2-20230718.img docker://jeffersonlab/epsci-almalinux:9.2-20230718
-#   cp -rp epsci-almalinux:9.2-20230718.img /scigroup/cvmfs/epsci/singularity/images
+#   apptainer build epsci-${MYOS_}.img docker://jeffersonlab/epsci-${MYOS}
+#   cp -rp epsci-${MYOS_}.img /scigroup/cvmfs/epsci/singularity/images
 #
 #--------------------------------------------------------------------------
 
@@ -41,13 +51,6 @@ FROM almalinux:9.2-20230718
 # for it.
 ENV TZ=US/Eastern
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# These turn off lots of security features that otherwise prevent building
-# this on epscimac.jlab.org
-COPY openssl.cnf /tmp/openssl.cnf
-ENV OPENSSL_CONF=/tmp/openssl.cnf
-RUN echo insecure > /root/.curlrc
-RUN echo "Hello"
 
 # Install compiler and code management tools
 RUN dnf -y groupinstall 'Development Tools' \
