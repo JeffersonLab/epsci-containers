@@ -1,0 +1,73 @@
+#--------------------------------------------------------------------------
+# almalinux build environment
+#
+# 
+# This Dockerfile will produce an image suitable for compiling software.
+# The image will gave a C/C++ and Fortran compiler as well as python,
+# It will also contain version control software (e.g. git and svn).
+#
+# The commands below are simplified by setting this environment variable:
+#
+#   export MYOS=almalinux:9.3
+#   export MYOS_=almalinux-9.3
+#
+# The instructions below give a few options for building the image using
+# either podman or docker. Both support multi-platform builds, but podman
+# on ifarm only seems to support the native architecture while docker
+# is able to build multiple. Thus, it is recommended to build using docker
+# on your local desktop/laptop.
+#--------------------------------------------------------------------------
+#
+#  These instructions are for a multi-architecture docker build:
+#
+#   docker buildx create --name mybuilder
+#   docker buildx use mybuilder
+#   docker buildx inspect --bootstrap
+#   docker buildx build --platform linux/arm64,linux/amd64 -t jeffersonlab/epsci-${MYOS} --push -f Dockerfile.${MYOS_} .
+#
+#--------------------------------------------------------------------------
+#
+#  These instructions are for building with podman.
+#
+#  Note that this can be used to build multi-architecture by using a 
+#  comma separated list for the platform (e.g. linux/amd64,linux/arm64).
+#  ifarm though is not able to handle this so these build only for amd64.
+#
+#   podman manifest create epsci-${MYOS}
+#   podman build --platform linux/amd64 --manifest epsci-${MYOS} -f Dockerfile.almalinux.9.3 .
+#   podman manifest push epsci-${MYOS} docker://jeffersonlab/epsci-${MYOS}
+#
+#--------------------------------------------------------------------------
+#
+#  These instructions are for the classic single architecture docker build.
+#  They also work for podman by just replacing "docker" with "podman".
+#  This is mainly informational as it is recommended to do a multi-architecture
+#  build using one of the above.
+#
+#   docker build -t epsci-${MYOS} -t jeffersonlab/epsci-${MYOS} -f Dockerfile.${MYOS} .
+#   docker push jeffersonlab/epsci-${MYOS}
+#
+#--------------------------------------------------------------------------
+# This is how you can pull the image into an apptainer container on ifarm:
+#
+#   cd /scigroup/cvmfs/epsci/spack/images
+#   apptainer build epsci-${MYOS_}.img docker://jeffersonlab/epsci-${MYOS}
+#
+#--------------------------------------------------------------------------
+
+FROM almalinux:9.3
+
+# Python3 requires the timezone be set and will try and prompt for it.
+ENV TZ=US/Eastern
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Install compiler and code management tools
+RUN dnf -y groupinstall 'Development Tools' \
+	&& dnf -y install --allowerasing gcc-gfortran python3 git subversion curl which \
+	&& dnf clean all
+
+COPY Dockerfile.almalinux.9.3 /container/Dockerfile.almalinux.9.3
+RUN ln -s /root /home/root
+RUN ln -s /root /home/0
+
+CMD ["/bin/bash"]
